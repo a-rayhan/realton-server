@@ -28,6 +28,24 @@ async function run() {
         // Connect the client to the server	(optional starting in v4.7)
         await client.connect();
         // Send a ping to confirm a successful connection
+
+        const userCollection = client.db("realtonDb").collection("users");
+
+
+        // users
+        app.get('/users', async (req, res) => {
+            const result = await userCollection.find().toArray();
+            res.send(result);
+        })
+
+        app.post('/users', async (req, res) => {
+            const userItem = req.body;
+            const result = await userCollection.insertOne(userItem);
+            res.send(result);
+        })
+
+
+
         // await client.db("admin").command({ ping: 1 });
         console.log("Pinged your deployment. You successfully connected to MongoDB!");
     } finally {
