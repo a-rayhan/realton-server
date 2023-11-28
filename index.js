@@ -30,6 +30,7 @@ async function run() {
         // Send a ping to confirm a successful connection
 
         const userCollection = client.db("realtonDb").collection("users");
+        const propertiesCollection = client.db("realtonDb").collection("properties");
 
 
         // users
@@ -44,6 +45,17 @@ async function run() {
             res.send(result);
         })
 
+        // add items
+        app.get('/properties', async (req, res) => {
+            const result = await propertiesCollection.find().toArray();
+            res.send(result);
+        })
+
+        app.post('/properties', async (req, res) => {
+            const propertyItem = req.body;
+            const result = await propertiesCollection.insertOne(propertyItem);
+            res.send(result);
+        })
 
 
         // await client.db("admin").command({ ping: 1 });
