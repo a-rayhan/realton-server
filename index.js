@@ -1,6 +1,8 @@
 const express = require('express');
 const cors = require('cors');
 require('dotenv').config();
+const jwt = require('jsonwebtoken');
+const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 
 const app = express();
 const port = process.env.PORT || 5000;
@@ -10,8 +12,6 @@ app.use(cors());
 app.use(express.json());
 
 
-
-const { MongoClient, ServerApiVersion } = require('mongodb');
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASSWORD}@cluster0.yib2rqv.mongodb.net/?retryWrites=true&w=majority`;
 
 // Create a MongoClient with a MongoClientOptions object to set the Stable API version
@@ -32,6 +32,46 @@ async function run() {
         const userCollection = client.db("realtonDb").collection("users");
         const propertiesCollection = client.db("realtonDb").collection("properties");
 
+        // jwt related api
+        app.post('/jwt', async (req, res) => {
+            const user = req.body;
+            const token = jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, { expiresIn: '1h' })
+            res.send({ token });
+        })
+
+        // Middlewares
+        const verifyToken = (req, res, next) => {
+            // console.log(req.headers.authorization);
+            if (!req.headers.authorization) {
+                return res.status(401).send({ message: 'Unauthorized Access' })
+            }
+
+            const token = req.headers.authorization.split(' ')[1];
+            // console.log(token);
+
+            jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (error, decoded) => {
+                if (error) {
+                    return res.status(401).send({ message: 'Unauthorized Access' })
+                }
+
+                // console.log(decoded);
+                req.decoded = decoded;
+                next();
+            })
+        }
+
+        const verifyAdmin = async (req, res, next) => {
+            const email = req.decoded.email;
+            const query = { email: email };
+            const user = await userCollection.findOne(query);
+            const isAdmin = user?.role === 'admin';
+
+            if (!isAdmin) {
+                return res.status(403).send({ message: 'Forbidden Access' })
+            }
+
+            next();
+        }
 
         // users
         app.get('/users', async (req, res) => {
@@ -39,9 +79,56 @@ async function run() {
             res.send(result);
         })
 
+        app.get('/users/admin/:email', verifyToken, async (req, res) => {
+            const email = req.params.email;
+            // console.log(req.decoded.email);
+            if (email !== req.decoded.email) {
+                return res.status(403).send({ message: 'Forbidden Access' })
+            }
+
+            const query = { email: email };
+            const user = await userCollection.findOne(query);
+            // console.log(user);
+
+            let admin = false;
+
+            if (user) {
+                admin = user?.role == 'admin';
+            }
+
+            // console.log(admin);
+
+            res.send({ admin })
+        })
+
         app.post('/users', async (req, res) => {
             const userItem = req.body;
+            // Insert user if user doesn/t exist
+            const query = { email: userItem.email };
+            const existingUser = await userCollection.findOne(query);
+            if (existingUser) {
+                return res.send({ massage: 'User email already exist', insertedId: null })
+            }
             const result = await userCollection.insertOne(userItem);
+            res.send(result);
+        })
+
+        app.patch('/users/admin/:id', async (req, res) => {
+            const id = req.params.id;
+            const filter = { _id: new ObjectId(id) };
+            const updatedDoc = {
+                $set: {
+                    role: 'admin'
+                }
+            }
+            const result = await userCollection.updateOne(filter, updatedDoc);
+            res.send(result);
+        })
+
+        app.delete('/users/:id', verifyToken, verifyAdmin, async (req, res) => {
+            const id = req.params.id;
+            const query = { _id: new ObjectId(id) };
+            const result = await userCollection.deleteOne(query);
             res.send(result);
         })
 
@@ -54,6 +141,18 @@ async function run() {
         app.post('/properties', async (req, res) => {
             const propertyItem = req.body;
             const result = await propertiesCollection.insertOne(propertyItem);
+            res.send(result);
+        })
+
+        app.patch('/properties/:id', async (req, res) => {
+            const id = req.params.id;
+            const filter = { _id: new ObjectId(id) };
+            const updatedDoc = {
+                $set: {
+                    status: 'accepted'
+                }
+            }
+            const result = await propertiesCollection.updateOne(filter, updatedDoc);
             res.send(result);
         })
 
