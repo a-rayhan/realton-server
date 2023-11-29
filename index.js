@@ -101,6 +101,28 @@ async function run() {
             res.send({ admin })
         })
 
+        app.get('/users/agent/:email', verifyToken, async (req, res) => {
+            const email = req.params.email;
+            // console.log(req.decoded.email);
+            if (email !== req.decoded.email) {
+                return res.status(403).send({ message: 'Forbidden Access' })
+            }
+
+            const query = { email: email };
+            const user = await userCollection.findOne(query);
+            // console.log(user);
+
+            let agent = false;
+
+            if (user) {
+                agent = user?.role == 'agent';
+            }
+
+            // console.log(agent);
+
+            res.send({ agent })
+        })
+
         app.post('/users', async (req, res) => {
             const userItem = req.body;
             // Insert user if user doesn/t exist
@@ -119,6 +141,18 @@ async function run() {
             const updatedDoc = {
                 $set: {
                     role: 'admin'
+                }
+            }
+            const result = await userCollection.updateOne(filter, updatedDoc);
+            res.send(result);
+        })
+
+        app.patch('/users/agent/:id', async (req, res) => {
+            const id = req.params.id;
+            const filter = { _id: new ObjectId(id) };
+            const updatedDoc = {
+                $set: {
+                    role: 'agent'
                 }
             }
             const result = await userCollection.updateOne(filter, updatedDoc);
