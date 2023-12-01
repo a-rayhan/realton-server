@@ -32,6 +32,7 @@ async function run() {
         const userCollection = client.db("realtonDb").collection("users");
         const propertiesCollection = client.db("realtonDb").collection("properties");
         const reviewsCollection = client.db("realtonDb").collection("reviews");
+        const wishlistCollection = client.db("realtonDb").collection("wishlists");
 
         // jwt related api
         app.post('/jwt', async (req, res) => {
@@ -227,6 +228,25 @@ async function run() {
         app.post('/reviews', async (req, res) => {
             const reviewItem = req.body;
             const result = await reviewsCollection.insertOne(reviewItem);
+            res.send(result);
+        })
+
+        // wishlists
+        app.get('/wishlists', async (req, res) => {
+            const result = await wishlistCollection.find().toArray();
+            res.send(result);
+        })
+
+        app.post('/wishlists', async (req, res) => {
+            const wishlistItem = req.body;
+            const result = await wishlistCollection.insertOne(wishlistItem);
+            res.send(result);
+        })
+
+        app.delete('/wishlists/:id', async (req, res) => {
+            const id = req.params.id;
+            const query = { _id: new ObjectId(id) };
+            const result = await wishlistCollection.deleteOne(query);
             res.send(result);
         })
 
