@@ -31,6 +31,7 @@ async function run() {
 
         const userCollection = client.db("realtonDb").collection("users");
         const propertiesCollection = client.db("realtonDb").collection("properties");
+        const reviewsCollection = client.db("realtonDb").collection("reviews");
 
         // jwt related api
         app.post('/jwt', async (req, res) => {
@@ -187,6 +188,18 @@ async function run() {
                 }
             }
             const result = await propertiesCollection.updateOne(filter, updatedDoc);
+            res.send(result);
+        })
+
+        // reviews
+        app.get('/reviews', async (req, res) => {
+            const result = await reviewsCollection.find().toArray();
+            res.send(result);
+        })
+
+        app.post('/reviews', async (req, res) => {
+            const reviewItem = req.body;
+            const result = await reviewsCollection.insertOne(reviewItem);
             res.send(result);
         })
 
