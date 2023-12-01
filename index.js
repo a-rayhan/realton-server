@@ -184,7 +184,8 @@ async function run() {
             const filter = { _id: new ObjectId(id) };
             const updatedDoc = {
                 $set: {
-                    status: 'accepted'
+                    status: 'accepted',
+                    advertise: 'advertised'
                 }
             }
             const result = await propertiesCollection.updateOne(filter, updatedDoc);
