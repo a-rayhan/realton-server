@@ -191,6 +191,25 @@ async function run() {
             res.send(result);
         })
 
+        app.put('/properties/:id', async (req, res) => {
+            const id = req.params.id;
+            const propertyData = req.body;
+            const filter = { _id: new ObjectId(id) };
+            const options = { upsert: true };
+            const updateData = {
+                $set: {
+                    title: propertyData.title,
+                    price: propertyData.price,
+                    photo: propertyData.photo,
+                    location: propertyData.location,
+                    rating: propertyData.rating,
+                    description: propertyData.description,
+                }
+            }
+            const result = await propertiesCollection.updateOne(filter, updateData, options);
+            res.send(result);
+        })
+
         // reviews
         app.get('/reviews', async (req, res) => {
             const result = await reviewsCollection.find().toArray();
